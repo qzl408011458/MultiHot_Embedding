@@ -1,7 +1,7 @@
 # MultiHot_Embedding
-This is a code repository of the submitted AAAI 2023 paper: *MultiHot Embedding: A Multiple Activation Embedding Model for Continuous Features in Deep Learning*.
+This is a code repository of the paper: *MultiHot Embedding: A Multiple Activation Embedding Model for Continuous Features in Deep Learning*.
 
-Please cite our paper if you use the code in your work. The suggested citation is 'P. Zhang, Z. Ma, Z. Qing, Y. Zhao (2022). MultiHot Embedding: A Multiple Activation Embedding Model for Continuous Features in Deep Learning. arxiv xxx'  
+Please cite our paper if you use the code in your work. The suggested citation is MultiHot Embedding: A Multiple Activation Embedding Model for Continuous Features in Deep Learning. arxiv xxx'  
 
 For task1 and task3, you can use the following commands to reproduce our
  best models.
