@@ -1,6 +1,80 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+
+class TLSTM3(nn.Module):
+    def __init__(self, in_dim, hid_dim, tVec_dim=16, device='cuda'):
+        super(TLSTM3, self).__init__()
+        self.fc_gate_i = nn.Sequential(
+            nn.Linear(in_dim + hid_dim, hid_dim),
+            nn.Sigmoid()
+        )
+        # self.fc_gate_f = nn.Sequential(
+        #     nn.Linear(in_dim + hid_dim, hid_dim),
+        #     nn.Sigmoid()
+        # )
+
+        self.fc_content_c_ = nn.Sequential(
+            nn.Linear(in_dim + hid_dim, hid_dim),
+            nn.Tanh()
+        )
+
+        self.fc_gate_o = nn.Sequential(
+            nn.Linear(in_dim + hid_dim + tVec_dim + 1, hid_dim),
+            nn.Sigmoid()
+        )
+
+        self.device = device
+        self.hid_dim = hid_dim
+
+        # Time2Vec modules
+        self.fc_gate_t1 = nn.Sequential(
+            nn.Linear(in_dim + tVec_dim + 1, hid_dim),
+            nn.Sigmoid()
+        )
+
+        self.fc_gate_t2 = nn.Sequential(
+            nn.Linear(in_dim + tVec_dim + 1, hid_dim),
+            nn.Sigmoid()
+        )
+
+        self.emb_t_non_pd = nn.Linear(1, 1)
+        self.emb_t_pd = nn.Linear(1, tVec_dim)
+
+
+    def forward(self, x):
+        bat, seq, feats = x.size()
+        h = torch.zeros(bat, self.hid_dim, device=self.device)
+        c = torch.zeros(bat, self.hid_dim, device=self.device)
+
+        for j in range(seq):
+            x_j = x[:, j]
+
+            # time 2 vector
+            t_ = torch.tensor([[seq - j]], dtype=torch.float32, device=self.device).repeat(bat, 1)
+            t_j = torch.cat([self.emb_t_non_pd(t_), torch.sin(self.emb_t_pd(t_))], dim=-1)
+
+            # time gate module
+            gate_t1 = self.fc_gate_t1(torch.cat([x_j, t_j], dim=-1))
+            gate_t2 = self.fc_gate_t2(torch.cat([x_j, t_j], dim=-1))
+
+            # LSTM module
+            gate_i = self.fc_gate_i(torch.cat([x_j, h], dim=-1))
+            # gate_f = self.fc_content_f(torch.cat([x_j, h], dim=-1))
+
+            content_c_ = self.fc_content_c_(torch.cat([x_j, h], dim=-1))
+
+            content_c__ = (1 - gate_i * gate_t1) * c + gate_i * gate_t1 * content_c_
+
+            c = (1 - gate_i) * c + gate_i * gate_t2 * content_c_
+
+            # c = gate_i * c + gate_f * content_c_
+
+            gate_o = self.fc_gate_o(torch.cat([x_j, t_j, h], dim=-1))
+            h = gate_o * torch.tanh(content_c__)
+
+        return h
+
 class LSTMClassifier(nn.Module):
     def __init__(self, rnn='lstm', input_dim=10, hidden_dim=256, num_layers=2, output_dim=9,
                  dropout=0, module=None, emb_size=100, bins=300, inv=5, total=200,
@@ -11,28 +85,39 @@ class LSTMClassifier(nn.Module):
         self.module = module
         self.rnn = rnn
 
-        if self.module != 'direct':
-            self.in_rl = in_RepreLayer(module, emb_size=emb_size, total=total, inv=inv,
-                                       bins=bins, num_feature=input_dim, device='cuda', t=t, hid_layers=hid_layers)
-            self.rnn_in_dim = input_dim*emb_size
-        else:
-            self.rnn_in_dim = input_dim
-        if self.rnn == 'lstm':
-            self.lstm = nn.LSTM(input_size=self.rnn_in_dim, hidden_size=hidden_dim,
-                                num_layers=num_layers, batch_first=True, dropout=dropout)
-        if self.rnn == 'gru':
-            self.gru = nn.GRU(input_size=self.rnn_in_dim, hidden_size=hidden_dim,
-                                num_layers=num_layers, batch_first=True, dropout=dropout)
+        if self.module != 't2v':
+            if self.module != 'direct':
+                self.in_rl = in_RepreLayer(module, emb_size=emb_size, total=total, inv=inv,
+                                           bins=bins, num_feature=input_dim, device='cuda', t=t, hid_layers=hid_layers)
+                self.rnn_in_dim = input_dim*emb_size
+            else:
+                self.rnn_in_dim = input_dim
+            if self.rnn == 'lstm':
+                self.lstm = nn.LSTM(input_size=self.rnn_in_dim, hidden_size=hidden_dim,
+                                    num_layers=num_layers, batch_first=True, dropout=dropout)
+            if self.rnn == 'gru':
+                self.gru = nn.GRU(input_size=self.rnn_in_dim, hidden_size=hidden_dim,
+                                    num_layers=num_layers, batch_first=True, dropout=dropout)
+
+        if self.module == 't2v':
+            self.tlstm = TLSTM3(input_dim, hidden_dim)
+
         self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, X):
-        if self.module != 'direct':
-            X = self.in_rl(X)
-        if self.rnn == 'lstm':
-            hidden_features, (h_n, c_n) = self.lstm(X)  # (h_0, c_0) default to zeros
-        if self.rnn == 'gru':
-            hidden_features, h_n = self.gru(X)
-        hidden_features = hidden_features[:, -1, :]  # index only the features produced by the last LSTM cell
+
+        if self.module != 't2v':
+            if self.module != 'direct':
+                X = self.in_rl(X)
+            if self.rnn == 'lstm':
+                hidden_features, (h_n, c_n) = self.lstm(X)  # (h_0, c_0) default to zeros
+            if self.rnn == 'gru':
+                hidden_features, h_n = self.gru(X)
+            hidden_features = hidden_features[:, -1, :]
+        else:
+            hidden_features = self.tlstm(X)
+
+          # index only the features produced by the last LSTM cell
         out = self.fc(hidden_features)
         return out
 
