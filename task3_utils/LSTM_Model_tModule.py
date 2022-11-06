@@ -85,7 +85,7 @@ class LSTMClassifier(nn.Module):
         self.module = module
         self.rnn = rnn
 
-        if self.module != 't2v':
+        if self.module != 't2v' and self.module != 's2v':
             if self.module != 'direct':
                 self.in_rl = in_RepreLayer(module, emb_size=emb_size, total=total, inv=inv,
                                            bins=bins, num_feature=input_dim, device='cuda', t=t, hid_layers=hid_layers)
@@ -99,14 +99,17 @@ class LSTMClassifier(nn.Module):
                 self.gru = nn.GRU(input_size=self.rnn_in_dim, hidden_size=hidden_dim,
                                     num_layers=num_layers, batch_first=True, dropout=dropout)
 
-        if self.module == 't2v':
-            self.tlstm = TLSTM3(input_dim, hidden_dim)
+        else:
+            if self.module == 't2v':
+                self.tlstm = TLSTM3(input_dim, hidden_dim)
+            if self.module == 's2v':
+                self.gru = nn.GRU(input_size=emb_size, hidden_size=hidden_dim,
+                                    num_layers=num_layers, batch_first=True, dropout=dropout)
 
         self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, X):
-
-        if self.module != 't2v':
+        if self.module != 't2v' and self.module != 's2v':
             if self.module != 'direct':
                 X = self.in_rl(X)
             if self.rnn == 'lstm':
@@ -114,8 +117,11 @@ class LSTMClassifier(nn.Module):
             if self.rnn == 'gru':
                 hidden_features, h_n = self.gru(X)
             hidden_features = hidden_features[:, -1, :]
-        else:
+        if self.module == 't2v':
             hidden_features = self.tlstm(X)
+        if self.module == 's2v':
+            hidden_features, h_n = self.gru(X)
+            hidden_features = hidden_features[:, -1, :]
 
           # index only the features produced by the last LSTM cell
         out = self.fc(hidden_features)
