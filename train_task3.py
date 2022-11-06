@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from task3_utils.mydataset import myDataset
 from task3_utils.LSTM_Model_tModule import LSTMClassifier
 import os
+
 def discrete(data_train, data_test,bins=100):
     train_shape = data_train.shape
     test_shape = data_test.shape
@@ -80,15 +81,24 @@ def transform_scalar(train_set_X, test_set_X):
     return train_set_X, test_set_X
 
 def loadDataset():
-    with open('task3_utils/dataset.pkl', 'rb') as fr:
-        train_set_X, train_set_Y, test_set_X, test_set_Y = pickle.load(fr)
-    train_set_X, test_set_X = transform_scalar(train_set_X, test_set_X)
-    if args.module != 'direct':
-        train_set_X, test_set_X = discrete(train_set_X, test_set_X, args.bins)
-    if not torch.is_tensor(train_set_X):
-        train_set_X = torch.tensor(train_set_X)
-    if not torch.is_tensor(test_set_X):
-        test_set_X = torch.tensor(test_set_X)
+
+
+    if args.module != 's2v':
+        with open('task3_utils/dataset.pkl', 'rb') as fr:
+            train_set_X, train_set_Y, test_set_X, test_set_Y = pickle.load(fr)
+        train_set_X, test_set_X = transform_scalar(train_set_X, test_set_X)
+        if args.module != 'direct':
+            train_set_X, test_set_X = discrete(train_set_X, test_set_X, args.bins)
+        if not torch.is_tensor(train_set_X):
+            train_set_X = torch.tensor(train_set_X)
+        if not torch.is_tensor(test_set_X):
+            test_set_X = torch.tensor(test_set_X)
+    else:
+        with open('task3_utils/dataset_s2v.pkl', 'rb') as fr:
+            train_set_X, train_set_Y, test_set_X, test_set_Y = pickle.load(fr)
+            train_set_X, test_set_X= torch.tensor(train_set_X, dtype=torch.float32),\
+                                     torch.tensor(test_set_X, dtype=torch.float32)
+
     train_val_split = int(len(train_set_Y) * 0.9)
     trainset = myDataset(train_set_X[:train_val_split], train_set_Y[:train_val_split])
     valset = myDataset(train_set_X[train_val_split:], train_set_Y[train_val_split:])
@@ -99,7 +109,7 @@ def train_test():
     print('=========================================================================')
     print('trial {} starts'.format(0))
     lr = 0.001
-    n_epochs = 1000
+    n_epochs = args.epoch
     patience, patience_counter = 50, 0
     args.scalar = 'standard'
     args.bins = 200
@@ -111,6 +121,8 @@ def train_test():
     print(params_str)
     print('=========================================================================')
     trainset, valset, testset = loadDataset()
+
+
     trainloader = DataLoader(trainset, shuffle=True, batch_size=batch_size)
     valloader = DataLoader(valset, shuffle=False, batch_size=batch_size)
     testloader = DataLoader(testset, shuffle=False, batch_size=batch_size)
@@ -201,8 +213,8 @@ if __name__ == '__main__':
     parser.add_argument('--saveModelName', '-sm', type=str, default='best')
     parser.add_argument('--batch', '-batch', type=int, default=64)
     parser.add_argument('--rnn', type=str, default='gru', help='lstm or gru')
-    parser.add_argument('--module', '-module', type=str, default='ewde',
-                        help='ewde, fe, direct, efde, ad')
+    parser.add_argument('--module', '-module', type=str, default='s2v',
+                        help='ewde, fe, direct, efde, ad, t2v, s2v')
     parser.add_argument('--scalar', type=str, default='minmax', help='select from minmax, standard or None')
     parser.add_argument('--emb_siz', type=int, default=100)
     parser.add_argument('--board', '-board', type=str, default='offBoard', help='onBoard, offBoard')
@@ -210,7 +222,7 @@ if __name__ == '__main__':
     parser.add_argument('--pred_time', '-pred_time', action='store_true')
     parser.add_argument('--mode', '-mode', type=str, default='train')
     parser.add_argument('--time_target', '-tim_tar', type=str, default='dis', help='output form of time: dis con')
-    parser.add_argument('--epoch', '-epoch', type=int, default=10, help='number of training epoch')
+    parser.add_argument('--epoch', '-epoch', type=int, default=100, help='number of training epoch')
     parser.add_argument('--multi', '-multi', type=int, help='select scenario')
     parser.add_argument('--bd', '-bd', type=str, help='yes no')
     parser.add_argument('--intv', '-intv', type=int, default=0)
@@ -218,9 +230,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     batch_size = args.batch
     os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-    for dirname, _, filenames in os.walk('/kaggle/input'):
-        for filename in filenames:
-            print(os.path.join(dirname, filename))
+    # for dirname, _, filenames in os.walk('/kaggle/input'):
+    #     for filename in filenames:
+    #         print(os.path.join(dirname, filename))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     if device == torch.device('cuda'):
