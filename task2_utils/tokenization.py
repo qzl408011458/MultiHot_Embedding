@@ -100,7 +100,7 @@ def generate_corpus_tokens():
 
     corpus_generate(labeled_train_set_X)
 
-    with open('task2_utils/dataset_tokens.pkl', 'wb') as fw:
+    with open('task2_utils/dataset_tokens2.pkl', 'wb') as fw:
         data = (labeled_train_set_X, train_set_Y, labeled_test_set_X, test_set_Y)
         pickle.dump(data, fw)
 
