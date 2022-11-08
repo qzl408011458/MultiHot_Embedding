@@ -4,7 +4,7 @@ This is the implementation of word2vec based on PyTorch. This repo is cloned fro
 
 Run it with
 
-    python word2vec.py corpus.txt word_embedding_task3.txt
+    python word2vec.py corpus3.txt word_embedding_task3.txt
 
 
 
