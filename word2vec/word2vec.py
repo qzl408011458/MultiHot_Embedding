@@ -92,7 +92,7 @@ class Word2Vec:
 
 
 if __name__ == '__main__':
-    sys_argv1 = 'corpus.txt'
+    sys_argv1 = 'corpus3.txt'
     sys_argv2 = 'word_embedding_task3.txt'
     # w2v = Word2Vec(input_file_name=sys.argv[1], output_file_name=sys.argv[2])
     w2v = Word2Vec(input_file_name=sys_argv1, output_file_name=sys_argv2,
