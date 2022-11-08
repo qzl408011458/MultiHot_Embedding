@@ -1,5 +1,10 @@
 import os
 import platform
+# sysstr = platform.system()
+# if sysstr =="Windows":
+#     import sys
+#     sys.path.append('C:\\ana\\envs\\bert123\\Lib\\site-packages')
+
 import torch.nn.functional as F
 import torch.utils.data as tud
 import sklearn
