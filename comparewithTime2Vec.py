@@ -7,7 +7,7 @@ if __name__ == '__main__':
     print()
 
     parser = argparse.ArgumentParser(description='select args')
-    parser.add_argument('--task', type=int, default=2, help='choose task2 or task3')
+    parser.add_argument('--task', type=int, default=3, help='choose task2 or task3')
     parser.add_argument('--tVec_dim', '-t', type=int, default=16)
     parser.add_argument('--hid_siz', '-hid', type=int, default=128)
 

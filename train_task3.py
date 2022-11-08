@@ -94,7 +94,7 @@ def loadDataset():
         if not torch.is_tensor(test_set_X):
             test_set_X = torch.tensor(test_set_X)
     else:
-        with open('task3_utils/dataset_s2v.pkl', 'rb') as fr:
+        with open('task3_utils/dataset_s2v_t3.pkl', 'rb') as fr:
             train_set_X, train_set_Y, test_set_X, test_set_Y = pickle.load(fr)
             train_set_X, test_set_X= torch.tensor(train_set_X, dtype=torch.float32),\
                                      torch.tensor(test_set_X, dtype=torch.float32)
