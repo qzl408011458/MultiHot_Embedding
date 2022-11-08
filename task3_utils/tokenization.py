@@ -63,7 +63,7 @@ def find_best_clusterNum():
 
 
 def corpus_generate(data):
-    with open('task3_utils/corpus.txt', 'w') as fw:
+    with open('task3_utils/corpus3.txt', 'w') as fw:
         for i in range(len(data)):
             line = ''
             for j in range(len(data[i])):
@@ -74,13 +74,7 @@ def corpus_generate(data):
 
             fw.write(line)
 
-
-
-
-
-
-if __name__ == '__main__':
-    # find_best_clusterNum()
+def generate_corpus_tokens():
 
     seed = 6200
     cluster_num = 4800 # 4800
@@ -109,7 +103,14 @@ if __name__ == '__main__':
     with open('task3_utils/dataset.pkl', 'rb') as fr:
         train_set_X, train_set_Y, test_set_X, test_set_Y = pickle.load(fr)
 
-    with open('task3_utils/dataset_tokens.pkl', 'wb') as fw:
+    with open('task3_utils/dataset_tokens3.pkl', 'wb') as fw:
         data = (labeled_train_set_X, train_set_Y, labeled_test_set_X, test_set_Y)
         pickle.dump(data, fw)
+
+
+
+
+if __name__ == '__main__':
+    # find_best_clusterNum()
+    generate_corpus_tokens()
 
